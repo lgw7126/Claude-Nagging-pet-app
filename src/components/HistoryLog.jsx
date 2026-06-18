@@ -1,0 +1,77 @@
+export default function HistoryLog({ history, onClear, onClose }) {
+  const grouped = groupByDate(history)
+  const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-900">
+      <header className="flex items-center justify-between border-b border-gray-100 dark:border-slate-700 px-5 py-4">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">📋 투약 기록</h2>
+        <div className="flex items-center gap-3">
+          {history.length > 0 && (
+            <button
+              onClick={() => {
+                if (confirm('전체 기록을 삭제할까요?')) onClear()
+              }}
+              className="text-sm text-red-400 hover:text-red-500"
+            >
+              전체 삭제
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 hover:text-gray-600 text-xl"
+          >
+            ✕
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+        {history.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+            <span className="text-5xl">📭</span>
+            <p className="text-gray-400 dark:text-gray-500">아직 완료한 루틴이 없어요</p>
+          </div>
+        ) : (
+          dates.map((date) => (
+            <div key={date}>
+              <p className="mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                {formatDate(date)}
+              </p>
+              <div className="space-y-2">
+                {grouped[date].map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-3 rounded-xl bg-gray-50 dark:bg-slate-800 px-4 py-3"
+                  >
+                    <span className="text-xl">✅</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        {entry.petName}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{entry.routineName}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function groupByDate(history) {
+  return history.reduce((acc, entry) => {
+    const key = entry.doneDate
+    if (!acc[key]) acc[key] = []
+    acc[key].push(entry)
+    return acc
+  }, {})
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
+}

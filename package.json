@@ -1,0 +1,27 @@
+{
+  "name": "claude-nagging-pet-app",
+  "version": "1.0.0",
+  "description": "잔소리펫 - 반려동물 케어 주기 알림 앱",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:44337/git/lgw7126/Claude-Nagging-pet-app"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@vitejs/plugin-react": "^6.0.2",
+    "tailwindcss": "^4.3.1",
+    "vite": "^8.0.16"
+  }
+}

@@ -1,6 +1,6 @@
 import { calcDDay, getNaggingMessage, STATUS_STYLES } from '../utils/dday'
 
-export default function PetCard({ pet, onMarkDone, onDelete }) {
+export default function PetCard({ pet, onMarkDone, onEdit, onDelete }) {
   const dday = calcDDay(pet.lastDoneDate, pet.intervalDays)
   const { text, status } = getNaggingMessage(pet.petName, pet.routineName, dday)
   const style = STATUS_STYLES[status]
@@ -51,6 +51,12 @@ export default function PetCard({ pet, onMarkDone, onDelete }) {
             className="rounded-lg bg-white/80 px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm hover:bg-white active:scale-95 transition-all"
           >
             ✅ 완료
+          </button>
+          <button
+            onClick={() => onEdit(pet)}
+            className="rounded-lg bg-white/80 px-3 py-1 text-xs font-semibold text-gray-500 shadow-sm hover:bg-white active:scale-95 transition-all"
+          >
+            ✏️
           </button>
           <button
             onClick={() => onDelete(pet.id)}

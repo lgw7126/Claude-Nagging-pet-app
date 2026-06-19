@@ -3,17 +3,21 @@ import { resizeImageToBase64 } from '../utils/image'
 
 const today = new Date().toISOString().split('T')[0]
 
-const EMPTY = {
-  petName: '',
-  routineName: '',
-  intervalDays: 30,
-  lastDoneDate: today,
-  photo: null,
-}
+export default function AddRoutineForm({ onAdd, onClose, editData }) {
+  const isEdit = Boolean(editData)
 
-export default function AddRoutineForm({ onAdd, onClose }) {
-  const [form, setForm] = useState(EMPTY)
-  const [preview, setPreview] = useState(null)
+  const [form, setForm] = useState(
+    editData
+      ? {
+          petName: editData.petName,
+          routineName: editData.routineName,
+          intervalDays: editData.intervalDays,
+          lastDoneDate: editData.lastDoneDate,
+          photo: editData.photo ?? null,
+        }
+      : { petName: '', routineName: '', intervalDays: 30, lastDoneDate: today, photo: null }
+  )
+  const [preview, setPreview] = useState(editData?.photo ?? null)
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
   const fileRef = useRef()
@@ -38,6 +42,11 @@ export default function AddRoutineForm({ onAdd, onClose }) {
     }
   }
 
+  function removePhoto() {
+    setPreview(null)
+    setForm((prev) => ({ ...prev, photo: null }))
+  }
+
   function handleSubmit(e) {
     e.preventDefault()
     if (!form.petName.trim()) return setError('반려동물 이름을 입력해 주세요.')
@@ -46,23 +55,23 @@ export default function AddRoutineForm({ onAdd, onClose }) {
     if (Number(form.intervalDays) < 1) return setError('주기는 1일 이상이어야 합니다.')
     setError('')
     onAdd({
-      id: crypto.randomUUID(),
+      id: isEdit ? editData.id : crypto.randomUUID(),
       petName: form.petName.trim(),
       routineName: form.routineName.trim(),
       intervalDays: Number(form.intervalDays),
       lastDoneDate: form.lastDoneDate,
       photo: form.photo,
     })
-    setForm(EMPTY)
-    setPreview(null)
     onClose()
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-t-3xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-t-3xl bg-white dark:bg-slate-800 p-6 shadow-xl max-h-[90dvh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">새 루틴 등록 🐾</h2>
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+            {isEdit ? '루틴 수정 ✏️' : '새 루틴 등록 🐾'}
+          </h2>
           <button
             onClick={onClose}
             className="rounded-full p-1 text-gray-400 hover:text-gray-600 text-xl"
@@ -74,30 +83,35 @@ export default function AddRoutineForm({ onAdd, onClose }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 사진 업로드 */}
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="h-16 w-16 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-slate-500 hover:border-pink-400 transition-colors shrink-0"
-            >
-              {photoLoading ? (
-                <span className="text-xs text-gray-400">...</span>
-              ) : preview ? (
-                <img src={preview} alt="preview" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-2xl">📷</span>
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="h-16 w-16 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-slate-500 hover:border-pink-400 transition-colors"
+              >
+                {photoLoading ? (
+                  <span className="text-xs text-gray-400">...</span>
+                ) : preview ? (
+                  <img src={preview} alt="preview" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl">📷</span>
+                )}
+              </button>
+              {preview && (
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-400 text-white text-xs flex items-center justify-center"
+                >
+                  ✕
+                </button>
               )}
-            </button>
+            </div>
             <div className="text-sm text-gray-400 dark:text-gray-500">
               <p className="font-medium text-gray-600 dark:text-gray-300">반려동물 사진</p>
-              <p>탭하여 사진 추가 (선택)</p>
+              <p>탭하여 {preview ? '변경' : '추가'} (선택)</p>
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhoto}
-            />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
           </div>
 
           <div>
@@ -164,7 +178,7 @@ export default function AddRoutineForm({ onAdd, onClose }) {
             type="submit"
             className="w-full rounded-xl bg-pink-400 py-3 font-bold text-white shadow-md hover:bg-pink-500 active:scale-95 transition-all"
           >
-            등록하기 🐾
+            {isEdit ? '수정 완료 ✅' : '등록하기 🐾'}
           </button>
         </form>
       </div>

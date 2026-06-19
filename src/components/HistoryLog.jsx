@@ -56,9 +56,16 @@ export default function HistoryLog({ history, pets = [], onClear, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-900">
-      <header className="flex items-center justify-between border-b border-gray-100 dark:border-slate-700 px-5 py-4">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">📋 투약 기록</h2>
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between border-b border-gray-100 dark:border-slate-700 px-4 py-4">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1 rounded-xl px-2 py-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+        >
+          <span className="text-lg">←</span>
+          <span className="text-sm font-semibold">뒤로</span>
+        </button>
+        <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">📋 투약 기록</h2>
+        <div className="flex items-center gap-2">
           {history.length > 0 && (
             <>
               <button
@@ -71,16 +78,10 @@ export default function HistoryLog({ history, pets = [], onClear, onClose }) {
                 onClick={() => { if (confirm('전체 기록을 삭제할까요?')) onClear() }}
                 className="text-sm text-red-400 hover:text-red-500"
               >
-                전체 삭제
+                삭제
               </button>
             </>
           )}
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 text-gray-400 hover:text-gray-600 text-xl"
-          >
-            ✕
-          </button>
         </div>
       </header>
 

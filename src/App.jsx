@@ -50,12 +50,11 @@ export default function App() {
 
   // 앱 열릴 때 + 2시간마다 알림 체크
   useEffect(() => {
-    if (getPermission() === 'granted' && pets.length > 0) {
-      checkAndNotify(pets)
-      const timer = setInterval(() => checkAndNotify(petsRef.current), NOTIFY_INTERVAL_MS)
-      return () => clearInterval(timer)
-    }
-  }, [pets.length > 0 && getPermission() === 'granted'])
+    if (getPermission() !== 'granted' || pets.length === 0) return
+    checkAndNotify(pets)
+    const timer = setInterval(() => checkAndNotify(petsRef.current), NOTIFY_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [pets.length])
 
   const handleNotificationGranted = useCallback(() => {
     checkAndNotify(petsRef.current)

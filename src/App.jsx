@@ -85,7 +85,7 @@ export default function App() {
     showToast('✅ 루틴이 수정됐어요!')
   }
 
-  function markDone(id) {
+  function markDone(id, proofPhoto = null) {
     const today = new Date().toISOString().split('T')[0]
     const pet = pets.find((p) => p.id === id)
     const updated = pets.map((p) => (p.id === id ? { ...p, lastDoneDate: today } : p))
@@ -98,9 +98,11 @@ export default function App() {
         petName: pet.petName,
         routineName: pet.routineName,
         doneDate: today,
+        proofPhoto,
         createdAt: Date.now(),
       }
       setHistory((prev) => addHistoryEntry(prev, entry))
+      showToast(`📸 ${pet.petName} ${pet.routineName} 완료 인증됐어요!`)
     }
   }
 
@@ -199,7 +201,7 @@ export default function App() {
       </div>
 
       {showForm && (
-        <AddRoutineForm onAdd={addPet} onClose={() => setShowForm(false)} />
+        <AddRoutineForm onAdd={addPet} onClose={() => setShowForm(false)} existingPets={pets} />
       )}
 
       {editingPet && (

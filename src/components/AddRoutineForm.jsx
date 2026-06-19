@@ -3,7 +3,7 @@ import { resizeImageToBase64 } from '../utils/image'
 
 const today = new Date().toISOString().split('T')[0]
 
-export default function AddRoutineForm({ onAdd, onClose, editData }) {
+export default function AddRoutineForm({ onAdd, onClose, editData, existingPets = [] }) {
   const isEdit = Boolean(editData)
 
   const [form, setForm] = useState(
@@ -25,6 +25,16 @@ export default function AddRoutineForm({ onAdd, onClose, editData }) {
   function handleChange(e) {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
+    // 같은 이름의 반려동물이 이미 있으면 사진 자동 재사용
+    if (name === 'petName' && !isEdit) {
+      const existing = existingPets.find((p) => p.petName === value.trim() && p.photo)
+      if (existing) {
+        setPreview(existing.photo)
+        setForm((prev) => ({ ...prev, petName: value, photo: existing.photo }))
+      } else if (!form.photo) {
+        setPreview(null)
+      }
+    }
   }
 
   async function handlePhoto(e) {

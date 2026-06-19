@@ -44,13 +44,24 @@ export default function HistoryLog({ history, onClear, onClose }) {
                     key={entry.id}
                     className="flex items-center gap-3 rounded-xl bg-gray-50 dark:bg-slate-800 px-4 py-3"
                   >
-                    <span className="text-xl">✅</span>
-                    <div>
+                    {entry.proofPhoto ? (
+                      <img
+                        src={entry.proofPhoto}
+                        alt="완료 인증"
+                        className="h-12 w-12 rounded-xl object-cover shrink-0 border border-gray-200 dark:border-slate-600"
+                      />
+                    ) : (
+                      <span className="text-xl shrink-0">✅</span>
+                    )}
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                         {entry.petName}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">{entry.routineName}</p>
                     </div>
+                    {entry.proofPhoto && (
+                      <span className="ml-auto shrink-0 text-xs text-pink-400 font-semibold">📸 인증</span>
+                    )}
                   </div>
                 ))}
               </div>

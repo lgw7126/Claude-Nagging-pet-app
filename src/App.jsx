@@ -14,7 +14,15 @@ import PetFilter from './components/PetFilter'
 import HistoryLog from './components/HistoryLog'
 import NotificationBanner from './components/NotificationBanner'
 
-const NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000 // 2시간마다 재알림
+const NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000
+const STREAK_MILESTONES = [3, 5, 10, 20, 30, 50, 100]
+
+function calcDayRaw(pet) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  const last = new Date(pet.lastDoneDate); last.setHours(0,0,0,0)
+  const next = new Date(last); next.setDate(next.getDate() + pet.intervalDays)
+  return Math.round((next - today) / 86400000)
+}
 
 export default function App() {
   const [pets, setPets] = useState([])
@@ -88,22 +96,35 @@ export default function App() {
   function markDone(id, proofPhoto = null) {
     const today = new Date().toISOString().split('T')[0]
     const pet = pets.find((p) => p.id === id)
-    const updated = pets.map((p) => (p.id === id ? { ...p, lastDoneDate: today } : p))
+    if (!pet) return
+
+    // 제때 완료면 스트릭 +1, 늦으면 리셋
+    const dday = calcDayRaw(pet)
+    const newStreak = dday >= 0 ? (pet.streak || 0) + 1 : 0
+
+    const updated = pets.map((p) =>
+      p.id === id ? { ...p, lastDoneDate: today, streak: newStreak } : p
+    )
     setPets(updated)
     savePets(updated)
-    if (pet) {
-      const entry = {
-        id: crypto.randomUUID(),
-        petId: id,
-        petName: pet.petName,
-        routineName: pet.routineName,
-        doneDate: today,
-        proofPhoto,
-        createdAt: Date.now(),
-      }
-      setHistory((prev) => addHistoryEntry(prev, entry))
-      showToast(`📸 ${pet.petName} ${pet.routineName} 완료 인증됐어요!`)
+
+    const entry = {
+      id: crypto.randomUUID(),
+      petId: id,
+      petName: pet.petName,
+      routineName: pet.routineName,
+      doneDate: today,
+      proofPhoto,
+      createdAt: Date.now(),
     }
+    setHistory((prev) => addHistoryEntry(prev, entry))
+
+    const streakMsg = STREAK_MILESTONES.includes(newStreak)
+      ? `🎉 ${newStreak}연속 제때 완료! 대단해요!`
+      : newStreak >= 2
+      ? `🔥 ${newStreak}연속 달성 중!`
+      : null
+    showToast(streakMsg || `📸 ${pet.petName} ${pet.routineName} 완료 인증됐어요!`)
   }
 
   function deletePet(id) {

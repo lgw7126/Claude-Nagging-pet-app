@@ -1,4 +1,5 @@
 import LZString from 'lz-string'
+import { syncPetsToSW } from './swManager'
 
 const PETS_KEY = 'nagging-pet-data'
 const HISTORY_KEY = 'nagging-pet-history'
@@ -15,6 +16,7 @@ export function loadPets() {
 
 export function savePets(pets) {
   localStorage.setItem(PETS_KEY, JSON.stringify(pets))
+  syncPetsToSW(pets)
 }
 
 export function loadHistory() {

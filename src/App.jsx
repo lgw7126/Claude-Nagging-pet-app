@@ -5,6 +5,7 @@ import {
   loadTheme, saveTheme,
 } from './utils/storage'
 import { checkAndNotify, getPermission } from './utils/notifications'
+import { syncPetsToSW } from './utils/swManager'
 import PetCard from './components/PetCard'
 import AddRoutineForm from './components/AddRoutineForm'
 import ShareBanner from './components/ShareBanner'
@@ -43,7 +44,9 @@ export default function App() {
       window.history.replaceState({}, '', window.location.pathname)
       setTimeout(() => setImportBanner(false), 4000)
     } else {
-      setPets(loadPets())
+      const loaded = loadPets()
+      setPets(loaded)
+      syncPetsToSW(loaded) // SW IDB 초기 동기화
     }
     setHistory(loadHistory())
   }, [])

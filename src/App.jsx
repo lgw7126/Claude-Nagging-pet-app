@@ -234,7 +234,7 @@ export default function App() {
       )}
 
       {showHistory && (
-        <HistoryLog history={history} onClear={clearHistory} onClose={() => setShowHistory(false)} />
+        <HistoryLog history={history} pets={pets} onClear={clearHistory} onClose={() => setShowHistory(false)} />
       )}
 
       {showShare && (

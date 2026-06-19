@@ -42,11 +42,14 @@ export default function PetCard({ pet, onMarkDone, onEdit, onDelete }) {
               </p>
             </div>
           </div>
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${style.badge}`}
-          >
-            {ddayLabel}
-          </span>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {pet.streak >= 2 && (
+              <span className="text-xs font-bold text-orange-500">🔥 {pet.streak}연속</span>
+            )}
+            <span className={`rounded-full px-3 py-1 text-sm font-bold ${style.badge}`}>
+              {ddayLabel}
+            </span>
+          </div>
         </div>
 
         <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-gray-700 leading-relaxed">

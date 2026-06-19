@@ -1,6 +1,58 @@
-export default function HistoryLog({ history, onClear, onClose }) {
+export default function HistoryLog({ history, pets = [], onClear, onClose }) {
   const grouped = groupByDate(history)
   const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
+
+  function exportPDF() {
+    const now = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' })
+    const petRows = pets.map((p) => {
+      const count = history.filter((h) => h.petId === p.id).length
+      return `<tr>
+        <td>${p.petName}</td><td>${p.routineName}</td>
+        <td>${p.intervalDays}일</td><td>${p.lastDoneDate}</td>
+        <td>${p.streak || 0}회</td><td>${count}회</td>
+      </tr>`
+    }).join('')
+
+    const histRows = [...history]
+      .sort((a,b) => b.createdAt - a.createdAt)
+      .map((h) => `<tr>
+        <td>${h.doneDate}</td><td>${h.petName}</td><td>${h.routineName}</td>
+        <td style="color:#16a34a">${h.proofPhoto ? '📸 인증 완료' : '완료'}</td>
+      </tr>`).join('')
+
+    const html = `<!DOCTYPE html><html lang="ko"><head>
+      <meta charset="UTF-8">
+      <title>잔소리펫 투약 보고서</title>
+      <style>
+        body{font-family:-apple-system,sans-serif;padding:32px;color:#1f2937;max-width:800px;margin:0 auto}
+        h1{color:#ec4899;margin-bottom:4px}
+        .sub{color:#6b7280;font-size:13px;margin-bottom:28px}
+        h2{font-size:15px;color:#374151;margin:24px 0 8px;border-bottom:2px solid #fce7f3;padding-bottom:4px}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th{background:#fdf2f8;padding:8px 10px;text-align:left;font-weight:600;color:#6b7280}
+        td{padding:7px 10px;border-bottom:1px solid #f3f4f6}
+        tr:last-child td{border:none}
+        .footer{margin-top:40px;font-size:11px;color:#9ca3af;text-align:center}
+      </style>
+    </head><body>
+      <h1>🐾 잔소리펫 투약 보고서</h1>
+      <p class="sub">출력일: ${now} | 총 기록 ${history.length}건</p>
+      <h2>📋 현재 루틴 현황</h2>
+      <table><thead><tr>
+        <th>반려동물</th><th>루틴</th><th>주기</th><th>마지막 투약</th><th>연속</th><th>총 완료</th>
+      </tr></thead><tbody>${petRows || '<tr><td colspan="6" style="color:#9ca3af">등록된 루틴 없음</td></tr>'}</tbody></table>
+      <h2>📅 투약 상세 기록</h2>
+      <table><thead><tr>
+        <th>날짜</th><th>반려동물</th><th>루틴</th><th>인증</th>
+      </tr></thead><tbody>${histRows || '<tr><td colspan="4" style="color:#9ca3af">기록 없음</td></tr>'}</tbody></table>
+      <p class="footer">잔소리펫 (lgw7126.github.io/Claude-Nagging-pet-app) · 수의사 제출용</p>
+    </body></html>`
+
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+    win.print()
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-900">
@@ -8,14 +60,20 @@ export default function HistoryLog({ history, onClear, onClose }) {
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">📋 투약 기록</h2>
         <div className="flex items-center gap-3">
           {history.length > 0 && (
-            <button
-              onClick={() => {
-                if (confirm('전체 기록을 삭제할까요?')) onClear()
-              }}
-              className="text-sm text-red-400 hover:text-red-500"
-            >
-              전체 삭제
-            </button>
+            <>
+              <button
+                onClick={exportPDF}
+                className="text-sm font-semibold text-pink-500 hover:text-pink-600"
+              >
+                📄 PDF
+              </button>
+              <button
+                onClick={() => { if (confirm('전체 기록을 삭제할까요?')) onClear() }}
+                className="text-sm text-red-400 hover:text-red-500"
+              >
+                전체 삭제
+              </button>
+            </>
           )}
           <button
             onClick={onClose}

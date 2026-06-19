@@ -7,6 +7,7 @@ import {
 import { checkAndNotify, getPermission } from './utils/notifications'
 import { syncPetsToSW } from './utils/swManager'
 import PetCard from './components/PetCard'
+import PetGroup from './components/PetGroup'
 import AddRoutineForm from './components/AddRoutineForm'
 import ShareBanner from './components/ShareBanner'
 import ShareModal from './components/ShareModal'
@@ -14,7 +15,15 @@ import PetFilter from './components/PetFilter'
 import HistoryLog from './components/HistoryLog'
 import NotificationBanner from './components/NotificationBanner'
 
-const NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000 // 2시간마다 재알림
+const NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000
+const STREAK_MILESTONES = [3, 5, 10, 20, 30, 50, 100]
+
+function calcDayRaw(pet) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  const last = new Date(pet.lastDoneDate); last.setHours(0,0,0,0)
+  const next = new Date(last); next.setDate(next.getDate() + pet.intervalDays)
+  return Math.round((next - today) / 86400000)
+}
 
 export default function App() {
   const [pets, setPets] = useState([])
@@ -26,6 +35,7 @@ export default function App() {
   const [selectedPet, setSelectedPet] = useState(null)
   const [importBanner, setImportBanner] = useState(false)
   const [successToast, setSuccessToast] = useState('')
+  const [groupView, setGroupView] = useState(false)
   const [dark, setDark] = useState(() => loadTheme() === 'dark')
   const petsRef = useRef(pets)
   petsRef.current = pets
@@ -88,22 +98,35 @@ export default function App() {
   function markDone(id, proofPhoto = null) {
     const today = new Date().toISOString().split('T')[0]
     const pet = pets.find((p) => p.id === id)
-    const updated = pets.map((p) => (p.id === id ? { ...p, lastDoneDate: today } : p))
+    if (!pet) return
+
+    // 제때 완료면 스트릭 +1, 늦으면 리셋
+    const dday = calcDayRaw(pet)
+    const newStreak = dday >= 0 ? (pet.streak || 0) + 1 : 0
+
+    const updated = pets.map((p) =>
+      p.id === id ? { ...p, lastDoneDate: today, streak: newStreak } : p
+    )
     setPets(updated)
     savePets(updated)
-    if (pet) {
-      const entry = {
-        id: crypto.randomUUID(),
-        petId: id,
-        petName: pet.petName,
-        routineName: pet.routineName,
-        doneDate: today,
-        proofPhoto,
-        createdAt: Date.now(),
-      }
-      setHistory((prev) => addHistoryEntry(prev, entry))
-      showToast(`📸 ${pet.petName} ${pet.routineName} 완료 인증됐어요!`)
+
+    const entry = {
+      id: crypto.randomUUID(),
+      petId: id,
+      petName: pet.petName,
+      routineName: pet.routineName,
+      doneDate: today,
+      proofPhoto,
+      createdAt: Date.now(),
     }
+    setHistory((prev) => addHistoryEntry(prev, entry))
+
+    const streakMsg = STREAK_MILESTONES.includes(newStreak)
+      ? `🎉 ${newStreak}연속 제때 완료! 대단해요!`
+      : newStreak >= 2
+      ? `🔥 ${newStreak}연속 달성 중!`
+      : null
+    showToast(streakMsg || `📸 ${pet.petName} ${pet.routineName} 완료 인증됐어요!`)
   }
 
   function deletePet(id) {
@@ -176,11 +199,42 @@ export default function App() {
         <NotificationBanner onGranted={handleNotificationGranted} />
 
         {pets.length > 1 && (
-          <PetFilter pets={pets} selected={selectedPet} onSelect={setSelectedPet} />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <PetFilter pets={pets} selected={selectedPet} onSelect={setSelectedPet} />
+            </div>
+            <button
+              onClick={() => setGroupView((v) => !v)}
+              className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all ${
+                groupView
+                  ? 'bg-pink-400 text-white border-pink-400'
+                  : 'bg-white/80 text-gray-500 border-gray-200 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300'
+              }`}
+            >
+              {groupView ? '🐾 프로필' : '🐾 프로필'}
+            </button>
+          </div>
         )}
 
         {sorted.length === 0 ? (
           <EmptyState onAdd={() => setShowForm(true)} hasPets={pets.length > 0} />
+        ) : groupView ? (
+          // 반려동물 이름별로 그룹핑
+          Object.entries(
+            sorted.reduce((acc, p) => {
+              ;(acc[p.petName] = acc[p.petName] || []).push(p)
+              return acc
+            }, {})
+          ).map(([name, routines]) => (
+            <PetGroup
+              key={name}
+              petName={name}
+              routines={routines}
+              onMarkDone={markDone}
+              onEdit={setEditingPet}
+              onDelete={deletePet}
+            />
+          ))
         ) : (
           sorted.map((pet) => (
             <PetCard
@@ -213,7 +267,7 @@ export default function App() {
       )}
 
       {showHistory && (
-        <HistoryLog history={history} onClear={clearHistory} onClose={() => setShowHistory(false)} />
+        <HistoryLog history={history} pets={pets} onClear={clearHistory} onClose={() => setShowHistory(false)} />
       )}
 
       {showShare && (

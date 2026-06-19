@@ -6,6 +6,16 @@ const today = new Date().toISOString().split('T')[0]
 export default function AddRoutineForm({ onAdd, onClose, editData, existingPets = [] }) {
   const isEdit = Boolean(editData)
 
+  // 기존 반려동물 목록 (이름 중복 제거, 최신 사진 우선)
+  const knownPets = !isEdit
+    ? Object.values(
+        existingPets.reduce((acc, p) => {
+          if (!acc[p.petName] || p.photo) acc[p.petName] = p
+          return acc
+        }, {})
+      )
+    : []
+
   const [form, setForm] = useState(
     editData
       ? {
@@ -21,6 +31,11 @@ export default function AddRoutineForm({ onAdd, onClose, editData, existingPets 
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
   const fileRef = useRef()
+
+  function selectKnownPet(p) {
+    setForm((prev) => ({ ...prev, petName: p.petName, photo: p.photo ?? null }))
+    setPreview(p.photo ?? null)
+  }
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -90,6 +105,40 @@ export default function AddRoutineForm({ onAdd, onClose, editData, existingPets 
             ✕
           </button>
         </div>
+
+        {/* 기존 반려동물 빠른 선택 */}
+        {knownPets.length > 0 && (
+          <div className="px-6 pt-4 pb-1 shrink-0">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-2">
+              기존 반려동물 선택
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {knownPets.map((p) => (
+                <button
+                  key={p.petName}
+                  type="button"
+                  onClick={() => selectKnownPet(p)}
+                  className={`flex flex-col items-center gap-1 shrink-0 rounded-2xl px-3 py-2 border-2 transition-all active:scale-95 ${
+                    form.petName === p.petName
+                      ? 'border-pink-400 bg-pink-50 dark:bg-pink-950/40'
+                      : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700'
+                  }`}
+                >
+                  {p.photo ? (
+                    <img src={p.photo} alt={p.petName} className="h-10 w-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-slate-600 flex items-center justify-center text-xl">
+                      🐾
+                    </div>
+                  )}
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 max-w-[60px] truncate">
+                    {p.petName}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 폼 내용 - 스크롤 가능 */}
         <form id="routine-form" onSubmit={handleSubmit} className="px-6 py-4 space-y-4 overflow-y-auto flex-1">

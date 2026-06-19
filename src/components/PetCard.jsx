@@ -13,14 +13,28 @@ export default function PetCard({ pet, onMarkDone, onDelete }) {
       className={`rounded-2xl border-2 ${style.border} bg-gradient-to-br ${style.bg} p-4 shadow-sm`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-2xl">{style.emoji}</span>
+        <div className="flex items-center gap-3 min-w-0">
+          {pet.photo ? (
+            <img
+              src={pet.photo}
+              alt={pet.petName}
+              className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
+            />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-white/70 flex items-center justify-center text-2xl shadow-sm shrink-0">
+              {style.emoji}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="font-bold text-gray-800 truncate">{pet.petName}</p>
-            <p className="text-sm text-gray-500 truncate">{pet.routineName} · {pet.intervalDays}일 주기</p>
+            <p className="text-sm text-gray-500 truncate">
+              {pet.routineName} · {pet.intervalDays}일 주기
+            </p>
           </div>
         </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${style.badge}`}>
+        <span
+          className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${style.badge}`}
+        >
           {ddayLabel}
         </span>
       </div>
@@ -30,9 +44,7 @@ export default function PetCard({ pet, onMarkDone, onDelete }) {
       </p>
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-xs text-gray-400">
-          마지막: {pet.lastDoneDate}
-        </span>
+        <span className="text-xs text-gray-400">마지막: {pet.lastDoneDate}</span>
         <div className="flex gap-2">
           <button
             onClick={() => onMarkDone(pet.id)}

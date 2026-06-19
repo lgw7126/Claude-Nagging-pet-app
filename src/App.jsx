@@ -1,13 +1,36 @@
-import { useState, useEffect } from 'react'
-import { loadPets, savePets, decodeFromUrl } from './utils/storage'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  loadPets, savePets, decodeFromUrl,
+  loadHistory, saveHistory, addHistoryEntry,
+  loadTheme, saveTheme,
+} from './utils/storage'
+import { checkAndNotify } from './utils/notifications'
 import PetCard from './components/PetCard'
 import AddRoutineForm from './components/AddRoutineForm'
 import ShareBanner from './components/ShareBanner'
+import PetFilter from './components/PetFilter'
+import HistoryLog from './components/HistoryLog'
+import NotificationBanner from './components/NotificationBanner'
 
 export default function App() {
   const [pets, setPets] = useState([])
+  const [history, setHistory] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [selectedPet, setSelectedPet] = useState(null)
   const [importBanner, setImportBanner] = useState(false)
+  const [dark, setDark] = useState(() => loadTheme() === 'dark')
+
+  useEffect(() => {
+    const html = document.documentElement
+    if (dark) {
+      html.classList.add('dark')
+      saveTheme('dark')
+    } else {
+      html.classList.remove('dark')
+      saveTheme('light')
+    }
+  }, [dark])
 
   useEffect(() => {
     const urlPets = decodeFromUrl()
@@ -20,7 +43,12 @@ export default function App() {
     } else {
       setPets(loadPets())
     }
+    setHistory(loadHistory())
   }, [])
+
+  const handleNotificationGranted = useCallback(() => {
+    checkAndNotify(pets)
+  }, [pets])
 
   function addPet(pet) {
     const updated = [...pets, pet]
@@ -30,53 +58,97 @@ export default function App() {
 
   function markDone(id) {
     const today = new Date().toISOString().split('T')[0]
-    const updated = pets.map((p) =>
-      p.id === id ? { ...p, lastDoneDate: today } : p
-    )
+    const pet = pets.find((p) => p.id === id)
+    const updated = pets.map((p) => p.id === id ? { ...p, lastDoneDate: today } : p)
     setPets(updated)
     savePets(updated)
+    if (pet) {
+      const entry = {
+        id: crypto.randomUUID(),
+        petId: id,
+        petName: pet.petName,
+        routineName: pet.routineName,
+        doneDate: today,
+        createdAt: Date.now(),
+      }
+      setHistory((prev) => addHistoryEntry(prev, entry))
+    }
   }
 
   function deletePet(id) {
     const updated = pets.filter((p) => p.id !== id)
     setPets(updated)
     savePets(updated)
+    if (selectedPet) {
+      const remaining = updated.filter((p) => p.petName === selectedPet)
+      if (remaining.length === 0) setSelectedPet(null)
+    }
   }
 
-  const urgentFirst = [...pets].sort((a, b) => {
-    const dA = calcRaw(a)
-    const dB = calcRaw(b)
-    return dA - dB
-  })
+  function clearHistory() {
+    setHistory([])
+    saveHistory([])
+  }
+
+  const filtered = selectedPet
+    ? pets.filter((p) => p.petName === selectedPet)
+    : pets
+
+  const sorted = [...filtered].sort((a, b) => calcRaw(a) - calcRaw(b))
 
   return (
-    <div className="mx-auto min-h-dvh max-w-md bg-gradient-to-b from-pink-50 to-fuchsia-50">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-5 py-4 shadow-sm">
+    <div className="mx-auto min-h-dvh max-w-md bg-gradient-to-b from-pink-50 to-fuchsia-50 dark:from-slate-900 dark:to-slate-950">
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-5 py-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black text-pink-500">🐾 잔소리펫</h1>
-            <p className="text-xs text-gray-400">반려동물이 직접 알려드려요</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">반려동물이 직접 알려드려요</p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="rounded-full bg-pink-400 px-4 py-2 text-sm font-bold text-white shadow hover:bg-pink-500 active:scale-95 transition-all"
-          >
-            + 루틴 추가
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowHistory(true)}
+              className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors relative"
+              title="투약 기록"
+            >
+              📋
+              {history.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-pink-400" />
+              )}
+            </button>
+            <button
+              onClick={() => setDark((d) => !d)}
+              className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              title="다크모드 전환"
+            >
+              {dark ? '☀️' : '🌙'}
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="rounded-full bg-pink-400 px-4 py-2 text-sm font-bold text-white shadow hover:bg-pink-500 active:scale-95 transition-all"
+            >
+              + 루틴
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="px-4 py-4 space-y-3">
         {importBanner && (
-          <div className="rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700 font-medium">
+          <div className="rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 px-4 py-3 text-sm text-blue-700 dark:text-blue-300 font-medium">
             📥 공유 받은 루틴을 불러왔어요!
           </div>
         )}
 
-        {urgentFirst.length === 0 ? (
-          <EmptyState onAdd={() => setShowForm(true)} />
+        <NotificationBanner onGranted={handleNotificationGranted} />
+
+        {pets.length > 1 && (
+          <PetFilter pets={pets} selected={selectedPet} onSelect={setSelectedPet} />
+        )}
+
+        {sorted.length === 0 ? (
+          <EmptyState onAdd={() => setShowForm(true)} hasPets={pets.length > 0} />
         ) : (
-          urgentFirst.map((pet) => (
+          sorted.map((pet) => (
             <PetCard
               key={pet.id}
               pet={pet}
@@ -87,12 +159,20 @@ export default function App() {
         )}
       </main>
 
-      <div className="sticky bottom-0 px-4 pb-safe pb-4 pt-2 bg-gradient-to-t from-fuchsia-50 to-transparent">
+      <div className="sticky bottom-0 px-4 pb-6 pt-2 bg-gradient-to-t from-fuchsia-50 dark:from-slate-950 to-transparent">
         <ShareBanner pets={pets} />
       </div>
 
       {showForm && (
         <AddRoutineForm onAdd={addPet} onClose={() => setShowForm(false)} />
+      )}
+
+      {showHistory && (
+        <HistoryLog
+          history={history}
+          onClear={clearHistory}
+          onClose={() => setShowHistory(false)}
+        />
       )}
     </div>
   )
@@ -108,12 +188,16 @@ function calcRaw(pet) {
   return Math.round((next - today) / 86400000)
 }
 
-function EmptyState({ onAdd }) {
+function EmptyState({ onAdd, hasPets }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
       <span className="text-6xl">🐾</span>
-      <p className="text-lg font-bold text-gray-600">아직 등록된 루틴이 없어요</p>
-      <p className="text-sm text-gray-400">반려동물의 케어 주기를 등록해 보세요</p>
+      <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
+        {hasPets ? '이 반려동물의 루틴이 없어요' : '아직 등록된 루틴이 없어요'}
+      </p>
+      <p className="text-sm text-gray-400 dark:text-gray-500">
+        반려동물의 케어 주기를 등록해 보세요
+      </p>
       <button
         onClick={onAdd}
         className="rounded-xl bg-pink-400 px-6 py-3 font-bold text-white shadow hover:bg-pink-500 active:scale-95 transition-all"

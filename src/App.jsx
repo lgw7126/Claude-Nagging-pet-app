@@ -1,35 +1,37 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   loadPets, savePets, decodeFromUrl,
   loadHistory, saveHistory, addHistoryEntry,
   loadTheme, saveTheme,
 } from './utils/storage'
-import { checkAndNotify } from './utils/notifications'
+import { checkAndNotify, getPermission } from './utils/notifications'
 import PetCard from './components/PetCard'
 import AddRoutineForm from './components/AddRoutineForm'
 import ShareBanner from './components/ShareBanner'
+import ShareModal from './components/ShareModal'
 import PetFilter from './components/PetFilter'
 import HistoryLog from './components/HistoryLog'
 import NotificationBanner from './components/NotificationBanner'
+
+const NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000 // 2시간마다 재알림
 
 export default function App() {
   const [pets, setPets] = useState([])
   const [history, setHistory] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [editingPet, setEditingPet] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [showShare, setShowShare] = useState(false)
   const [selectedPet, setSelectedPet] = useState(null)
   const [importBanner, setImportBanner] = useState(false)
   const [dark, setDark] = useState(() => loadTheme() === 'dark')
+  const petsRef = useRef(pets)
+  petsRef.current = pets
 
   useEffect(() => {
     const html = document.documentElement
-    if (dark) {
-      html.classList.add('dark')
-      saveTheme('dark')
-    } else {
-      html.classList.remove('dark')
-      saveTheme('light')
-    }
+    html.classList.toggle('dark', dark)
+    saveTheme(dark ? 'dark' : 'light')
   }, [dark])
 
   useEffect(() => {
@@ -46,9 +48,18 @@ export default function App() {
     setHistory(loadHistory())
   }, [])
 
+  // 앱 열릴 때 + 2시간마다 알림 체크
+  useEffect(() => {
+    if (getPermission() === 'granted' && pets.length > 0) {
+      checkAndNotify(pets)
+      const timer = setInterval(() => checkAndNotify(petsRef.current), NOTIFY_INTERVAL_MS)
+      return () => clearInterval(timer)
+    }
+  }, [pets.length > 0 && getPermission() === 'granted'])
+
   const handleNotificationGranted = useCallback(() => {
-    checkAndNotify(pets)
-  }, [pets])
+    checkAndNotify(petsRef.current)
+  }, [])
 
   function addPet(pet) {
     const updated = [...pets, pet]
@@ -56,10 +67,17 @@ export default function App() {
     savePets(updated)
   }
 
+  function updatePet(updated) {
+    const newPets = pets.map((p) => (p.id === updated.id ? updated : p))
+    setPets(newPets)
+    savePets(newPets)
+    setEditingPet(null)
+  }
+
   function markDone(id) {
     const today = new Date().toISOString().split('T')[0]
     const pet = pets.find((p) => p.id === id)
-    const updated = pets.map((p) => p.id === id ? { ...p, lastDoneDate: today } : p)
+    const updated = pets.map((p) => (p.id === id ? { ...p, lastDoneDate: today } : p))
     setPets(updated)
     savePets(updated)
     if (pet) {
@@ -79,9 +97,8 @@ export default function App() {
     const updated = pets.filter((p) => p.id !== id)
     setPets(updated)
     savePets(updated)
-    if (selectedPet) {
-      const remaining = updated.filter((p) => p.petName === selectedPet)
-      if (remaining.length === 0) setSelectedPet(null)
+    if (selectedPet && !updated.some((p) => p.petName === selectedPet)) {
+      setSelectedPet(null)
     }
   }
 
@@ -90,10 +107,7 @@ export default function App() {
     saveHistory([])
   }
 
-  const filtered = selectedPet
-    ? pets.filter((p) => p.petName === selectedPet)
-    : pets
-
+  const filtered = selectedPet ? pets.filter((p) => p.petName === selectedPet) : pets
   const sorted = [...filtered].sort((a, b) => calcRaw(a) - calcRaw(b))
 
   return (
@@ -107,7 +121,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowHistory(true)}
-              className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors relative"
+              className="relative rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
               title="투약 기록"
             >
               📋
@@ -118,7 +132,6 @@ export default function App() {
             <button
               onClick={() => setDark((d) => !d)}
               className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-              title="다크모드 전환"
             >
               {dark ? '☀️' : '🌙'}
             </button>
@@ -132,7 +145,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="px-4 py-4 space-y-3">
+      <main className="px-4 py-4 space-y-3 pb-32">
         {importBanner && (
           <div className="rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 px-4 py-3 text-sm text-blue-700 dark:text-blue-300 font-medium">
             📥 공유 받은 루틴을 불러왔어요!
@@ -153,26 +166,37 @@ export default function App() {
               key={pet.id}
               pet={pet}
               onMarkDone={markDone}
+              onEdit={setEditingPet}
               onDelete={deletePet}
             />
           ))
         )}
       </main>
 
-      <div className="sticky bottom-0 px-4 pb-6 pt-2 bg-gradient-to-t from-fuchsia-50 dark:from-slate-950 to-transparent">
-        <ShareBanner pets={pets} />
+      <div className="fixed bottom-0 left-0 right-0 flex justify-center pointer-events-none">
+        <div className="w-full max-w-md px-4 pb-6 pt-2 bg-gradient-to-t from-fuchsia-50 dark:from-slate-950 to-transparent pointer-events-auto">
+          <ShareBanner pets={pets} onOpen={() => setShowShare(true)} />
+        </div>
       </div>
 
       {showForm && (
         <AddRoutineForm onAdd={addPet} onClose={() => setShowForm(false)} />
       )}
 
-      {showHistory && (
-        <HistoryLog
-          history={history}
-          onClear={clearHistory}
-          onClose={() => setShowHistory(false)}
+      {editingPet && (
+        <AddRoutineForm
+          editData={editingPet}
+          onAdd={updatePet}
+          onClose={() => setEditingPet(null)}
         />
+      )}
+
+      {showHistory && (
+        <HistoryLog history={history} onClear={clearHistory} onClose={() => setShowHistory(false)} />
+      )}
+
+      {showShare && (
+        <ShareModal pets={pets} onClose={() => setShowShare(false)} />
       )}
     </div>
   )
@@ -195,9 +219,7 @@ function EmptyState({ onAdd, hasPets }) {
       <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
         {hasPets ? '이 반려동물의 루틴이 없어요' : '아직 등록된 루틴이 없어요'}
       </p>
-      <p className="text-sm text-gray-400 dark:text-gray-500">
-        반려동물의 케어 주기를 등록해 보세요
-      </p>
+      <p className="text-sm text-gray-400 dark:text-gray-500">반려동물의 케어 주기를 등록해 보세요</p>
       <button
         onClick={onAdd}
         className="rounded-xl bg-pink-400 px-6 py-3 font-bold text-white shadow hover:bg-pink-500 active:scale-95 transition-all"

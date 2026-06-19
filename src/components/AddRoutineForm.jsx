@@ -16,6 +16,9 @@ export default function AddRoutineForm({ onAdd, onClose, editData, existingPets 
       )
     : []
 
+  // 기존 반려동물이 있으면 첫 번째를 기본값으로 자동 선택
+  const defaultPet = knownPets[0] ?? null
+
   const [form, setForm] = useState(
     editData
       ? {
@@ -25,9 +28,15 @@ export default function AddRoutineForm({ onAdd, onClose, editData, existingPets 
           lastDoneDate: editData.lastDoneDate,
           photo: editData.photo ?? null,
         }
-      : { petName: '', routineName: '', intervalDays: 30, lastDoneDate: today, photo: null }
+      : {
+          petName: defaultPet?.petName ?? '',
+          routineName: '',
+          intervalDays: 30,
+          lastDoneDate: today,
+          photo: defaultPet?.photo ?? null,
+        }
   )
-  const [preview, setPreview] = useState(editData?.photo ?? null)
+  const [preview, setPreview] = useState(editData?.photo ?? defaultPet?.photo ?? null)
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
   const fileRef = useRef()

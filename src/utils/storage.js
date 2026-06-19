@@ -39,7 +39,11 @@ export function addHistoryEntry(history, entry) {
 }
 
 export function loadTheme() {
-  return localStorage.getItem(THEME_KEY) || 'light'
+  try {
+    return localStorage.getItem(THEME_KEY) || 'light'
+  } catch {
+    return 'light'
+  }
 }
 
 export function saveTheme(theme) {

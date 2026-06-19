@@ -26,6 +26,21 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      window.onerror = function(msg, src, line, col, err) {
+        var el = document.getElementById('js-error-display');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'js-error-display';
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;padding:16px;z-index:9999;font-size:13px;word-break:break-all;white-space:pre-wrap;';
+          document.body.appendChild(el);
+        }
+        el.textContent = '❌ JS 오류\n' + msg + '\n' + src + ':' + line;
+      };
+      window.onunhandledrejection = function(e) {
+        window.onerror('Unhandled: ' + (e.reason && e.reason.message || e.reason), '', 0);
+      };
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

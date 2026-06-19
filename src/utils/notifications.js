@@ -39,13 +39,15 @@ export function checkAndNotify(pets) {
     }
 
     if (body) {
-      // renotify: true → 완료 전까지 매번 알림 표시
-      new Notification(`🐾 ${pet.petName}의 잔소리`, {
-        body,
-        tag: `nagging-pet-${pet.id}-${urgency}`,
-        renotify: true,
-        requireInteraction: urgency === 'high', // 지각/당일은 사용자가 직접 닫아야
-      })
+      try {
+        // Android Chrome with SW requires showNotification; new Notification() throws there
+        new Notification(`🐾 ${pet.petName}의 잔소리`, {
+          body,
+          tag: `nagging-pet-${pet.id}-${urgency}`,
+          renotify: true,
+          requireInteraction: urgency === 'high',
+        })
+      } catch {}
     }
   }
 }

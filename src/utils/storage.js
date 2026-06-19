@@ -51,8 +51,8 @@ export function saveTheme(theme) {
 }
 
 export function encodeToUrl(pets) {
-  // 사진(base64)은 URL에 포함하지 않아 길이 최소화
-  const slim = pets.map(({ photo: _photo, ...rest }) => rest)
+  // id·photo 제외, 키 이름 단축(n/r/i/d)으로 URL 최소화
+  const slim = pets.map(({ petName: n, routineName: r, intervalDays: i, lastDoneDate: d }) => ({ n, r, i, d }))
   const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(slim))
   const url = new URL(window.location.href)
   url.search = ''
@@ -68,7 +68,13 @@ export function decodeFromUrl() {
   if (!compressed && !legacy) return null
   try {
     if (compressed) {
-      return JSON.parse(LZString.decompressFromEncodedURIComponent(compressed))
+      const raw = JSON.parse(LZString.decompressFromEncodedURIComponent(compressed))
+      // 단축 키(n/r/i/d) 형식이면 복원, 구형식(petName…) 이면 그대로
+      return raw.map((p) =>
+        'n' in p
+          ? { id: crypto.randomUUID(), petName: p.n, routineName: p.r, intervalDays: Number(p.i), lastDoneDate: p.d, photo: null }
+          : p
+      )
     }
     return JSON.parse(decodeURIComponent(atob(legacy)))
   } catch {

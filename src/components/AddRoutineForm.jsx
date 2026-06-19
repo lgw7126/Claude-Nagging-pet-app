@@ -67,8 +67,9 @@ export default function AddRoutineForm({ onAdd, onClose, editData }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-t-3xl bg-white dark:bg-slate-800 p-6 shadow-xl max-h-[90dvh] overflow-y-auto">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="w-full max-w-md rounded-t-3xl bg-white dark:bg-slate-800 shadow-xl max-h-[90dvh] flex flex-col">
+        {/* 헤더 - 고정 */}
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-slate-700 shrink-0">
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
             {isEdit ? '루틴 수정 ✏️' : '새 루틴 등록 🐾'}
           </h2>
@@ -80,7 +81,8 @@ export default function AddRoutineForm({ onAdd, onClose, editData }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 폼 내용 - 스크롤 가능 */}
+        <form id="routine-form" onSubmit={handleSubmit} className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
           {/* 사진 업로드 */}
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
@@ -171,16 +173,20 @@ export default function AddRoutineForm({ onAdd, onClose, editData }) {
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-500">{error}</p>
+            <p className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-500">{error}</p>
           )}
+        </form>
 
+        {/* 등록 버튼 - 항상 화면에 보임 */}
+        <div className="px-6 pb-6 pt-3 shrink-0 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700">
           <button
             type="submit"
+            form="routine-form"
             className="w-full rounded-xl bg-pink-400 py-3 font-bold text-white shadow-md hover:bg-pink-500 active:scale-95 transition-all"
           >
             {isEdit ? '수정 완료 ✅' : '등록하기 🐾'}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   )

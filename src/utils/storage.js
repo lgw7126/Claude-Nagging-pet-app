@@ -1,3 +1,6 @@
+import LZString from 'lz-string'
+import { syncPetsToSW } from './swManager'
+
 const PETS_KEY = 'nagging-pet-data'
 const HISTORY_KEY = 'nagging-pet-history'
 const THEME_KEY = 'nagging-pet-theme'
@@ -13,6 +16,7 @@ export function loadPets() {
 
 export function savePets(pets) {
   localStorage.setItem(PETS_KEY, JSON.stringify(pets))
+  syncPetsToSW(pets)
 }
 
 export function loadHistory() {
@@ -43,21 +47,26 @@ export function saveTheme(theme) {
 }
 
 export function encodeToUrl(pets) {
-  const json = JSON.stringify(pets)
-  const encoded = btoa(encodeURIComponent(json))
+  // 사진(base64)은 URL에 포함하지 않아 길이 최소화
+  const slim = pets.map(({ photo: _photo, ...rest }) => rest)
+  const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(slim))
   const url = new URL(window.location.href)
   url.search = ''
-  url.searchParams.set('data', encoded)
+  url.searchParams.set('d', compressed)
   return url.toString()
 }
 
 export function decodeFromUrl() {
   const params = new URLSearchParams(window.location.search)
-  const encoded = params.get('data')
-  if (!encoded) return null
+  // 새 형식(d=) 우선, 구 형식(data=) 하위 호환
+  const compressed = params.get('d')
+  const legacy = params.get('data')
+  if (!compressed && !legacy) return null
   try {
-    const json = decodeURIComponent(atob(encoded))
-    return JSON.parse(json)
+    if (compressed) {
+      return JSON.parse(LZString.decompressFromEncodedURIComponent(compressed))
+    }
+    return JSON.parse(decodeURIComponent(atob(legacy)))
   } catch {
     return null
   }

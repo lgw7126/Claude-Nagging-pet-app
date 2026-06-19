@@ -7,6 +7,7 @@ import {
 import { checkAndNotify, getPermission } from './utils/notifications'
 import { syncPetsToSW } from './utils/swManager'
 import PetCard from './components/PetCard'
+import PetGroup from './components/PetGroup'
 import AddRoutineForm from './components/AddRoutineForm'
 import ShareBanner from './components/ShareBanner'
 import ShareModal from './components/ShareModal'
@@ -34,6 +35,7 @@ export default function App() {
   const [selectedPet, setSelectedPet] = useState(null)
   const [importBanner, setImportBanner] = useState(false)
   const [successToast, setSuccessToast] = useState('')
+  const [groupView, setGroupView] = useState(false)
   const [dark, setDark] = useState(() => loadTheme() === 'dark')
   const petsRef = useRef(pets)
   petsRef.current = pets
@@ -197,11 +199,42 @@ export default function App() {
         <NotificationBanner onGranted={handleNotificationGranted} />
 
         {pets.length > 1 && (
-          <PetFilter pets={pets} selected={selectedPet} onSelect={setSelectedPet} />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <PetFilter pets={pets} selected={selectedPet} onSelect={setSelectedPet} />
+            </div>
+            <button
+              onClick={() => setGroupView((v) => !v)}
+              className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold border transition-all ${
+                groupView
+                  ? 'bg-pink-400 text-white border-pink-400'
+                  : 'bg-white/80 text-gray-500 border-gray-200 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-300'
+              }`}
+            >
+              {groupView ? '🐾 프로필' : '🐾 프로필'}
+            </button>
+          </div>
         )}
 
         {sorted.length === 0 ? (
           <EmptyState onAdd={() => setShowForm(true)} hasPets={pets.length > 0} />
+        ) : groupView ? (
+          // 반려동물 이름별로 그룹핑
+          Object.entries(
+            sorted.reduce((acc, p) => {
+              ;(acc[p.petName] = acc[p.petName] || []).push(p)
+              return acc
+            }, {})
+          ).map(([name, routines]) => (
+            <PetGroup
+              key={name}
+              petName={name}
+              routines={routines}
+              onMarkDone={markDone}
+              onEdit={setEditingPet}
+              onDelete={deletePet}
+            />
+          ))
         ) : (
           sorted.map((pet) => (
             <PetCard

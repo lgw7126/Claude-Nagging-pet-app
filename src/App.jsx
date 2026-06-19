@@ -25,6 +25,7 @@ export default function App() {
   const [showShare, setShowShare] = useState(false)
   const [selectedPet, setSelectedPet] = useState(null)
   const [importBanner, setImportBanner] = useState(false)
+  const [successToast, setSuccessToast] = useState('')
   const [dark, setDark] = useState(() => loadTheme() === 'dark')
   const petsRef = useRef(pets)
   petsRef.current = pets
@@ -63,10 +64,17 @@ export default function App() {
     checkAndNotify(petsRef.current)
   }, [])
 
+  function showToast(msg) {
+    setSuccessToast(msg)
+    setTimeout(() => setSuccessToast(''), 2500)
+  }
+
   function addPet(pet) {
     const updated = [...pets, pet]
     setPets(updated)
     savePets(updated)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    showToast(`🐾 ${pet.petName}의 루틴이 등록됐어요!`)
   }
 
   function updatePet(updated) {
@@ -74,6 +82,7 @@ export default function App() {
     setPets(newPets)
     savePets(newPets)
     setEditingPet(null)
+    showToast('✅ 루틴이 수정됐어요!')
   }
 
   function markDone(id) {
@@ -146,6 +155,14 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {successToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-sm">
+          <div className="rounded-2xl bg-green-500 px-5 py-3 text-sm font-bold text-white shadow-lg text-center animate-fade-in">
+            {successToast}
+          </div>
+        </div>
+      )}
 
       <main className="px-4 py-4 space-y-3 pb-32">
         {importBanner && (
